@@ -553,8 +553,6 @@ public class AlarmClockFragment extends DeskClockFragment implements
                     RingtoneManager.TYPE_ALARM);
             intent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT,
                     false);
-            intent.putExtra(RingtoneManager.EXTRA_RINGTONE_DIALOG_THEME,
-                    android.R.style.Theme_Material_Dialog);
             AlarmClockFragment.this.startActivityForResult(intent, REQUEST_CODE_RINGTONE);
         } else {
             final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -562,6 +560,29 @@ public class AlarmClockFragment extends DeskClockFragment implements
                     AlarmClockFragment.this.mSelectedAlarm.alert);
             intent.setType(SEL_AUDIO_SRC);
             AlarmClockFragment.this.startActivityForResult(intent, REQUEST_CODE_EXTERN_AUDIO);
+        }
+    }
+
+    private class RingTonePickerDialogListener implements DialogInterface.OnClickListener {
+        private AlarmClockFragment alarm;
+
+        public RingTonePickerDialogListener(AlarmClockFragment clock) {
+            alarm = clock;
+        }
+
+        public void onClick(DialogInterface dialog, int which) {
+            switch (which) {
+                case SEL_SRC_RINGTONE:
+                case SEL_SRC_EXTERNAL:
+                    alarm.mSelectSource = which;
+                    break;
+                case DialogInterface.BUTTON_POSITIVE:
+                    alarm.sendPickIntent();
+                case DialogInterface.BUTTON_NEGATIVE:
+                default:
+                    dialog.dismiss();
+                    break;
+            }
         }
     }
 
@@ -575,20 +596,13 @@ public class AlarmClockFragment extends DeskClockFragment implements
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         switch (which) {
-                            case SEL_SRC_RINGTONE: //0
-                                AlarmClockFragment.this.mSelectSource = which;
-                                AlarmClockFragment.this.mSelectedAlarm = alarm;
-                                AlarmClockFragment.this.sendPickIntent();
+                            case 0:
+                                launchSingleRingTonePicker(alarm);
                                 break;
-                            case SEL_SRC_EXTERNAL: //1
-                                AlarmClockFragment.this.mSelectSource = which;
-                                AlarmClockFragment.this.mSelectedAlarm = alarm;
-                                AlarmClockFragment.this.sendPickIntent();
-                                break;
-                            case 2:
+                            case 1:
                                 launchSinglePlaylistPicker(alarm);
                                 break;
-                            case 3:
+                            case 2:
                                 alarm.alert = AlarmMultiPlayer.RANDOM_URI;
                                 asyncUpdateAlarm(alarm, false);
                                 break;
@@ -629,6 +643,21 @@ public class AlarmClockFragment extends DeskClockFragment implements
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void launchSingleRingTonePicker(Alarm alarm) {
+        mSelectedAlarm = alarm;
+        RingTonePickerDialogListener listener = new RingTonePickerDialogListener(this);
+        new AlertDialog.Builder(getActivity())
+                .setTitle(getResources().getString(R.string.alarm_select))
+                .setSingleChoiceItems(
+                        new String[] {
+                                getString(R.string.alarm_select_ringtone),
+                                getString(R.string.alarm_select_external) },
+                        mSelectSource, listener)
+                .setPositiveButton(getString(android.R.string.ok), listener)
+                .setNegativeButton(getString(android.R.string.cancel), listener)
                 .show();
     }
 
